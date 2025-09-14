@@ -18,7 +18,7 @@ async function generateTOC() {
             // Filter headings
             paragraphs.items.forEach(p => {
                 console.log("Paragraph:", p.text, "| Style:", p.style);
-            }
+            });
             const headings = paragraphs.items.filter(p => p.style.includes("Heading"));
             console.log("Headings found:", headings.length);
 
@@ -56,6 +56,7 @@ async function generateTOC() {
         console.error("Error generating TOC:", error);
     }
 }
+
 
 
 
