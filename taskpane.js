@@ -1,32 +1,51 @@
+Office.onReady(() => {
+    const btn = document.getElementById("generate-btn");
+    btn.disabled = false;
+    btn.onclick = generateTOC;
+});
+
 async function generateTOC() {
-  await Word.run(async (context) => {
-    // 1. Get all paragraphs
-    let paragraphs = context.document.body.paragraphs;
-    paragraphs.load("text, style");
-    await context.sync();
+    try {
+        await Word.run(async (context) => {
+            const body = context.document.body;
+            const paragraphs = body.paragraphs;
+            paragraphs.load("text, style, font, hyperlink, id");
+            await context.sync();
 
-    // 2. Filter only Headings
-    let headings = paragraphs.items.filter(p => 
-      p.style.includes("Heading")
-    );
+            // Filter headings
+            const headings = paragraphs.items.filter(p => p.style.includes("Heading"));
 
-    // 3. Build TOC string
-    let toc = "Table of Contents\n\n";
-    headings.forEach((h) => {
-      if (h.style.includes("Heading 1")) {
-        toc += h.text + "\n";
-      } else if (h.style.includes("Heading 2")) {
-        toc += "    " + h.text + "\n";
-      } else if (h.style.includes("Heading 3")) {
-        toc += "        " + h.text + "\n";
-      }
-    });
+            if (headings.length === 0) {
+                console.log("No headings found!");
+                return;
+            }
 
-    // 4. Insert TOC at top of document
-    let body = context.document.body;
-    body.insertParagraph(toc, Word.InsertLocation.start);
+            // Remove old TOC if it exists (optional)
+            const firstPara = paragraphs.items[0];
+            if (firstPara.text.startsWith("Table of Contents")) {
+                firstPara.clear();
+            }
 
-    await context.sync();
-    console.log("TOC generated!");
-  });
+            // Insert TOC title
+            const tocTitle = body.insertParagraph("Table of Contents", Word.InsertLocation.start);
+            tocTitle.style = "Heading 1";
+
+            // Add TOC entries
+            headings.forEach(h => {
+                let indent = 0;
+                if (h.style.includes("Heading 2")) indent = 1;
+                else if (h.style.includes("Heading 3")) indent = 2;
+
+                const para = body.insertParagraph(h.text, Word.InsertLocation.start);
+                para.style = "Normal";
+                para.leftIndent = 36 * indent; // 36 points per level
+                para.insertHyperlink(h.text, h.id, "End"); // clickable link
+            });
+
+            await context.sync();
+            console.log("TOC generated successfully!");
+        });
+    } catch (error) {
+        console.error("Error generating TOC:", error);
+    }
 }
