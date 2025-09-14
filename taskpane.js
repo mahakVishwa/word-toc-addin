@@ -1,4 +1,5 @@
 Office.onReady(() => {
+    console.log("Office.js is ready!");
     const btn = document.getElementById("generate-btn");
     btn.disabled = false;
     btn.onclick = generateTOC;
@@ -6,14 +7,17 @@ Office.onReady(() => {
 
 async function generateTOC() {
     try {
+        console.log("TOC generation started...");
         await Word.run(async (context) => {
             const body = context.document.body;
             const paragraphs = body.paragraphs;
             paragraphs.load("text, style, font, hyperlink, id");
             await context.sync();
 
+            console.log("Paragraphs loaded:", paragrpahs.items.length);
             // Filter headings
             const headings = paragraphs.items.filter(p => p.style.includes("Heading"));
+            console.log("Headings found:", headings.length);
 
             if (headings.length === 0) {
                 console.log("No headings found!");
@@ -49,3 +53,4 @@ async function generateTOC() {
         console.error("Error generating TOC:", error);
     }
 }
+
