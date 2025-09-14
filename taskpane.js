@@ -21,24 +21,44 @@ async function generateTOC() {
             await context.sync();
             console.log("✅ Paragraphs loaded:", paragraphs.items.length);
 
-            // Remove old TOC if the first paragraph is a TOC title
+            // Remove old TOC if it exists at the top
             const firstPara = paragraphs.items[0];
             if (firstPara && firstPara.text.toLowerCase().startsWith("table of contents")) {
                 console.log("🗑 Clearing old TOC...");
                 firstPara.clear();
             }
 
-            // Insert TOC field at the start
-            console.log("📌 Inserting native Table of Contents field...");
-            const tocRange = body.getRange("start");
-            tocRange.insertParagraph("Table of Contents", Word.InsertLocation.start).style = "Heading 1";
+            // Collect headings
+            const headings = paragraphs.items.filter(p =>
+                p.style && p.style.toLowerCase().includes("heading")
+            );
+            console.log("🔍 Headings found:", headings.length);
+            headings.forEach((h, i) => console.log(`   [${i}] "${h.text.trim()}" style="${h.style}"`));
 
-            // Insert the native TOC field
-            // Options: 'Classic' style, show levels 1-3, include hyperlinks
-            tocRange.insertTableOfContents("Classic", true, 1, 3);
+            // Build TOC entries array
+            const tocEntries = headings.map((h, idx) => {
+                let level = 0;
+                const styleName = h.style.toLowerCase();
+                if (styleName.includes("heading 2")) level = 1;
+                else if (styleName.includes("heading 3")) level = 2;
+
+                return { text: h.text.trim(), level };
+            });
+
+            // Insert TOC title at the very top
+            const tocTitle = body.insertParagraph("Table of Contents", Word.InsertLocation.start);
+            tocTitle.style = "Heading 1";
+
+            // Insert TOC entries **after the title** to keep correct order
+            for (let i = tocEntries.length - 1; i >= 0; i--) {
+                const entry = tocEntries[i];
+                const para = body.insertParagraph(entry.text, Word.InsertLocation.start);
+                para.style = "Normal";
+                para.leftIndent = 36 * entry.level;
+            }
 
             await context.sync();
-            console.log("🎉 TOC generated successfully with clickable entries!");
+            console.log("🎉 TOC generated successfully!");
         });
     } catch (err) {
         console.error("💥 Error in generateTOC():", err);
